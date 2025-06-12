@@ -37,7 +37,7 @@ function ProfilePage() {
       </SignedIn>
     </div>
   )
-}
+} 
 
 function Navigation() {
   return (

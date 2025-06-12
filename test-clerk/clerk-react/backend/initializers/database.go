@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/MC0117/test-clerk/clerk-react/backend/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -27,10 +26,4 @@ func ConnectToDB() {
 	}
 
 	fmt.Println("Successfully connected to database!")
-
-	// Auto migrate the database
-	err = DB.AutoMigrate(&models.Post{})
-	if err != nil {
-		log.Fatal("Failed to migrate database: ", err)
-	}
 }
