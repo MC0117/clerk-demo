@@ -1,14 +1,18 @@
 package controllers
 
 import (
-	"fmt"
+	"log"
+	"os"
 	"strings"
+	"time"
 
+	"github.com/MicahParks/keyfunc"
 	"github.com/gin-gonic/gin"
 
-	"github.com/MC0117/test-clerk/clerk-react/backend/clerk"
 	"github.com/MC0117/test-clerk/clerk-react/backend/initializers"
 	"github.com/MC0117/test-clerk/clerk-react/backend/models"
+
+	"github.com/golang-jwt/jwt/v4"
 )
 
 var body struct {
@@ -17,32 +21,66 @@ var body struct {
 }
 
 func ChatAction(c *gin.Context) {
+	// Extract and validate Authorization header
 	rawAuth := c.GetHeader("Authorization")
-	fmt.Println("Header received:", rawAuth)
-
-	if rawAuth == "" || !strings.HasPrefix("Bearer ") {
+	if rawAuth == "" || !strings.HasPrefix(rawAuth, "Bearer ") {
 		c.JSON(401, gin.H{"error": "Missing or Invalid authorization header"})
 		return
 	}
 
-	token := strings.TrimPrefix(rawAuth, "Bearer ")
+	// Extract JWT token from Bearer string
+	token_str := strings.TrimPrefix(rawAuth, "Bearer ")
 
-	clerk.GetUserId(c, token)
+	// Get JWKS URL from environment
+	jwksURL := os.Getenv("CLERK_JWKS_URL")
+	if jwksURL == "" {
+		c.JSON(500, gin.H{"error": "JWKS URL not configured"})
+		return
+	}
+
+	// Initialize JWKS client with refresh options
+	jwks, err := keyfunc.Get(jwksURL, keyfunc.Options{
+		RefreshErrorHandler: func(err error) {
+			log.Printf("JWKS refresh error: %s", err)
+		},
+		RefreshInterval:   time.Hour,
+		RefreshRateLimit:  time.Minute * 5,
+		RefreshTimeout:    10 * time.Second,
+		RefreshUnknownKID: true,
+	})
+	if err != nil {
+		c.JSON(500, gin.H{"error": "Failed to initialize JWKS client"})
+		return
+	}
+
+	// Parse and validate JWT token
+	token, err := jwt.Parse(token_str, jwks.Keyfunc)
+	if err != nil {
+		c.JSON(401, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	if !token.Valid {
+		c.JSON(401, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	// Parse chat request body
 	var chat_req struct {
 		Message string `json:"message"`
 		Agent   string `json:"agent"`
 	}
 
-	fmt.Println("Post req received...")
-	err := c.Bind(&chat_req)
-	if err != nil {
-		fmt.Println("Error binding request:", err)
+	if err := c.Bind(&chat_req); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request body"})
 		return
 	}
-	fmt.Println("Bind successful")
-	fmt.Println("Message:", chat_req.Message)
-	fmt.Println("Agent:", chat_req.Agent)
 
+	// Log request details
+	log.Printf("Chat request - Message: %s, Agent: %s", chat_req.Message, chat_req.Agent)
+
+	// TODO: Process chat request
+	c.JSON(200, gin.H{"status": "success"})
 }
 
 func PostCreate(c *gin.Context) {

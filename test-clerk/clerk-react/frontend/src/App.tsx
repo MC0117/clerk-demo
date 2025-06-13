@@ -1,5 +1,5 @@
 import { Routes, Route, Link } from 'react-router-dom'
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react'
+import { SignedIn, SignedOut, SignInButton, UserButton, SignUpButton } from '@clerk/clerk-react'
 import type { ReactNode } from 'react'
 import './styles/App.css'
 
@@ -13,6 +13,8 @@ function PublicPage() {
           <div>
             <p>Sign in to access your profile!</p>
             <SignInButton mode="modal" />
+            <p>Sign up for an account</p>
+            <SignUpButton mode="modal" />
           </div>
         </SignedOut>
         <SignedIn>  
